@@ -4,10 +4,29 @@ A powerful implementation of persistent memory for Claude using a local knowledg
 
 This server enables Claude to remember information across conversations, maintain context awareness, and make intelligent decisions about what information to store and retrieve.
 
-> [!IMPORTANT]
-> This is an enhanced fork of the original memory server with significant improvements for context window optimization, memory relevance tracking, and AI guidance systems.
+## Key Differences From Original Implementation
 
-![read-function](/img/read-function.png)
+Our enhanced version addresses several critical limitations of the original memory server:
+
+### 1. Context Window Optimization
+- **Original**: Always returns complete entity data with all observations, rapidly filling the context window
+- **Enhanced**: Returns only entity names and types by default, preserving valuable context space while still allowing full data retrieval when explicitly requested
+
+### 2. Memory Intelligence
+- **Original**: No guidance for AI on when to use memory functions or what to document
+- **Enhanced**: Built-in function usage guidelines, documentation standards, and automatic trigger detection
+
+### 3. Temporal & Relevance Awareness
+- **Original**: No tracking of when entities were created or accessed
+- **Enhanced**: Full temporal tracking with creation/access timestamps, usage counters, and relevance scoring
+
+### 4. Working Memory
+- **Original**: No session context or active entity tracking
+- **Enhanced**: Maintains working memory of active entities, recently discussed topics, and current conversation context
+
+### 5. Smart Retrieval
+- **Original**: No functions to retrieve relevant entities based on context
+- **Enhanced**: Added `get_recent_entities` and `get_relevant_entities` for context-aware retrieval
 
 ## Quick Start Installation
 
@@ -62,25 +81,30 @@ To verify installation:
 ## Enhanced Memory Features
 
 ### Context Window Optimization
-- `read_graph` now returns only entity names and types by default (saving context window space)
+- `read_graph` now returns only entity names and types by default
+- This significantly reduces context window usage
 - Full entity details available on demand with the `fullDetails` parameter
 
 ### Temporal Awareness
 - All entities and relations include timestamps for creation and last access
 - Access counters track usage patterns over time
+- Entities gain relevance scores based on access frequency
 
 ### Working Memory Context
 - A separate working memory context system tracks currently active entities
 - Entities are ranked by relevance based on access patterns
 - Automatic tracking of recently discussed topics
+- Current conversation topic tracking
 
 ### Memory Triggers
 - Automatic detection of when memory functions should be used
 - Identifies patterns in user messages that indicate memory operations
+- Provides guidance on when to store vs. retrieve information
 
 ### Documentation Guidelines
 - Built-in standards for entity naming conventions
 - Guidelines for effective observation formatting
+- Clear rules for what information should/shouldn't be stored
 
 ## Available Memory Tools
 
@@ -154,6 +178,57 @@ const relevantEntities = await knowledgeGraphManager.getRelevantEntities(5);
 // Use this information to personalize the conversation
 ```
 
+## Technical Implementation Details
+
+### read_graph Implementation
+
+The optimized `read_graph` function is central to our enhancements:
+
+```typescript
+async readGraph(fullDetails: boolean = false): Promise<KnowledgeGraph | SummaryKnowledgeGraph> {
+  const graph = await this.loadGraph();
+  
+  if (fullDetails) {
+    // Update access timestamps for all entities
+    const now = new Date().toISOString();
+    graph.entities.forEach(entity => {
+      entity.lastAccessed = now;
+      entity.accessCount = (entity.accessCount || 0) + 1;
+    });
+    await this.saveGraph(graph);
+    
+    return graph;
+  }
+  
+  // Return a lightweight version with only entity names and types
+  return {
+    entities: graph.entities.map(entity => ({
+      name: entity.name,
+      entityType: entity.entityType
+    })),
+    relations: graph.relations
+  };
+}
+```
+
+### Working Memory Structure
+
+Our working memory system maintains session context:
+
+```typescript
+interface WorkingMemoryContext {
+  activeEntities: string[]; // Currently active entities in conversation
+  recentlyDiscussed: {
+    entity: string,
+    timestamp: string, // ISO timestamp
+    relevanceScore: number
+  }[];
+  currentTopic: string;
+  pendingInformation: any[];
+  lastUpdated: string; // ISO timestamp
+}
+```
+
 ## System Prompt Example
 
 For optimal usage, add this to your Claude system prompt:
@@ -180,6 +255,13 @@ Follow these steps for optimal memory management:
    - Format observations as complete statements with context
    - Include relevant dates and attribution in observations
 ```
+
+## Storage and Performance
+
+- The knowledge graph is stored in a JSONL file for simplicity and portability
+- Working memory is stored in a separate JSON file to maintain session context
+- The server is optimized for typical personal usage (hundreds to thousands of entities)
+- All operations are asynchronous and support promise-based workflows
 
 ## Troubleshooting
 
