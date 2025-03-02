@@ -31,7 +31,7 @@ npm run build
 
 This enhanced fork addresses critical limitations in the original memory server:
 
-1. **Context Window Optimization**: The original server always returned complete entity data with all observations, rapidly filling Claude's context window. Our version only returns names and types by default.
+1. **Context Window Protection**: The original server always returned complete entity data with all observations, rapidly filling Claude's context window. Our version always returns only names and types, with no option to get full details via `read_graph`.
 
 2. **Function Documentation**: Original server provided no guidance on when to use memory functions. We've added built-in guidelines accessible via `get_function_guidelines`.
 
@@ -49,11 +49,12 @@ The `read_graph` function is the most important memory tool, and works different
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `fullDetails` | boolean | `false` | When `false`, returns only entity names and types. When `true`, returns complete entities with all observations. |
+| `fullDetails` | boolean | `false` | This parameter is kept for compatibility but is ignored. The function always returns only entity names and types. |
 
 ### Return Values
 
-When `fullDetails` is `false` (default):
+The function always returns this lightweight format to preserve context window space:
+
 ```json
 {
   "entities": [
@@ -66,54 +67,26 @@ When `fullDetails` is `false` (default):
 }
 ```
 
-When `fullDetails` is `true`:
-```json
-{
-  "entities": [
-    {
-      "name": "person_JohnDoe", 
-      "entityType": "Person",
-      "observations": [
-        "Full name is John Doe",
-        "Works as a software engineer"
-      ],
-      "createdAt": "2025-03-01T12:34:56Z",
-      "lastAccessed": "2025-03-02T09:45:22Z",
-      "accessCount": 5
-    },
-    {
-      "name": "project_Dashboard", 
-      "entityType": "Project",
-      "observations": [
-        "A data visualization project started on 2025-01-15"
-      ],
-      "createdAt": "2025-03-01T13:45:12Z",
-      "lastAccessed": "2025-03-02T09:45:22Z",
-      "accessCount": 3
-    }
-  ],
-  "relations": [
-    {
-      "from": "person_JohnDoe", 
-      "to": "project_Dashboard", 
-      "relationType": "manages",
-      "createdAt": "2025-03-01T13:50:22Z",
-      "lastAccessed": "2025-03-02T09:45:22Z"
-    }
-  ]
-}
-```
-
 ### How To Use read_graph Effectively
 
 ```javascript
-// Get a lightweight overview (RECOMMENDED FOR MOST CASES)
+// Get the lightweight overview of all entities
 const graph = await knowledgeGraphManager.readGraph();
-// Only contains entity names and types, preserving context window
+// Only contains entity names and types, never the full observations
+```
 
-// Get complete details when necessary
-const fullGraph = await knowledgeGraphManager.readGraph(true);
-// Contains all entity data including observations
+### Accessing Full Entity Details
+
+Since `read_graph` never returns full details, you must use these functions to access complete entity information:
+
+```javascript
+// To get specific entity details, use open_nodes:
+const personDetails = await knowledgeGraphManager.openNodes(["person_JohnDoe"]);
+// This returns full entity data including all observations
+
+// Or search for relevant entities:
+const projectData = await knowledgeGraphManager.searchNodes("dashboard");
+// This also returns full entity data for matches
 ```
 
 ### Usage Example with Claude
@@ -127,14 +100,14 @@ Claude: Let me check my memory.
 read_graph()
 </function_call>
 
-I can see I have information about you stored in my memory. Would you like me to share what I know about person_JohnDoe?
+I can see I have information about you stored in my memory. Would you like me to get more details about person_JohnDoe?
 ```
 
 ## All Available Memory Functions
 
 | Function | Purpose | Key Parameters |
 |----------|---------|----------------|
-| `read_graph` | Get overview of all entities | `fullDetails`: boolean (default: false) |
+| `read_graph` | Get overview of all entities | Parameters ignored, always returns names & types |
 | `open_nodes` | Get specific entities by name | `names`: string[] |
 | `search_nodes` | Find entities by keyword | `query`: string |
 | `create_entities` | Create new entities | `entities`: Entity[] |
@@ -157,8 +130,8 @@ When using memory, follow these best practices:
 
 1. Start conversations by checking context:
    - First use get_working_memory and get_relevant_entities(5)
-   - Use read_graph() WITHOUT fullDetails parameter to preserve context window
-   - For specific entities, use open_nodes(["entity_name"])
+   - Use read_graph() to get an overview of all entities
+   - For specific entity details, use open_nodes(["entity_name"])
 
 2. For memory retrieval:
    - Process user messages with process_user_message to detect retrieval needs
