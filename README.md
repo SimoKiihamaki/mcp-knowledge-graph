@@ -1,292 +1,186 @@
 # Enhanced Knowledge Graph Memory Server
 
-A powerful implementation of persistent memory for Claude using a local knowledge graph with advanced memory management capabilities.
+An optimized implementation of persistent memory for Claude using a knowledge graph with context window management.
 
-This server enables Claude to remember information across conversations, maintain context awareness, and make intelligent decisions about what information to store and retrieve.
+## Critical Configuration Note
 
-## Key Differences From Original Implementation
+In Claude Desktop, this server **MUST** be registered as `memory` (not "knowledge-graph" or "mcp-knowledge-graph"):
 
-Our enhanced version addresses several critical limitations of the original memory server:
+```json
+"memory": {
+  "command": "node",
+  "args": [
+    "/path/to/dist/index.js",
+    "--memory-path", 
+    "/path/to/memory.jsonl"
+  ]
+}
+```
 
-### 1. Context Window Optimization
-- **Original**: Always returns complete entity data with all observations, rapidly filling the context window
-- **Enhanced**: Returns only entity names and types by default, preserving valuable context space while still allowing full data retrieval when explicitly requested
-
-### 2. Memory Intelligence
-- **Original**: No guidance for AI on when to use memory functions or what to document
-- **Enhanced**: Built-in function usage guidelines, documentation standards, and automatic trigger detection
-
-### 3. Temporal & Relevance Awareness
-- **Original**: No tracking of when entities were created or accessed
-- **Enhanced**: Full temporal tracking with creation/access timestamps, usage counters, and relevance scoring
-
-### 4. Working Memory
-- **Original**: No session context or active entity tracking
-- **Enhanced**: Maintains working memory of active entities, recently discussed topics, and current conversation context
-
-### 5. Smart Retrieval
-- **Original**: No functions to retrieve relevant entities based on context
-- **Enhanced**: Added `get_recent_entities` and `get_relevant_entities` for context-aware retrieval
-
-## Quick Start Installation
+## Quick Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/SimoKiihamaki/mcp-knowledge-graph.git
-
-# Navigate to repository
 cd mcp-knowledge-graph
-
-# Switch to the enhanced memory branch
 git checkout enhance-memory-management
-
-# Install dependencies
 npm install
-
-# Build the project
 npm run build
 ```
 
-## Claude Desktop Configuration
+## What's Different in This Version?
 
-Add this to your `claude_desktop_config.json` (typically located at `%APPDATA%\Claude Desktop\claude_desktop_config.json` on Windows or `~/Library/Application Support/Claude Desktop/claude_desktop_config.json` on macOS):
+This enhanced fork addresses critical limitations in the original memory server:
 
+1. **Context Window Optimization**: The original server always returned complete entity data with all observations, rapidly filling Claude's context window. Our version only returns names and types by default.
+
+2. **Function Documentation**: Original server provided no guidance on when to use memory functions. We've added built-in guidelines accessible via `get_function_guidelines`.
+
+3. **Smart Memory Management**: Original had no tools to retrieve entities based on relevance. We've added functions to get recently accessed and contextually relevant entities.
+
+4. **Working Memory**: Original provided no session tracking. We've added a working memory context system that maintains information about the current conversation.
+
+5. **Temporal Awareness**: Original had no concept of when entities were created or accessed. We track creation/access timestamps and access frequency.
+
+## The read_graph Function Explained
+
+The `read_graph` function is the most important memory tool, and works differently in our implementation:
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `fullDetails` | boolean | `false` | When `false`, returns only entity names and types. When `true`, returns complete entities with all observations. |
+
+### Return Values
+
+When `fullDetails` is `false` (default):
 ```json
 {
-  "mcpServers": {
-    "memory": {
-      "command": "node",
-      "args": [
-        "/FULL/PATH/TO/mcp-knowledge-graph/dist/index.js",
-        "--memory-path", 
-        "/FULL/PATH/TO/memory.jsonl"
-      ]
-    }
-  }
-}
-```
-
-Replace `/FULL/PATH/TO/` with the actual full paths on your system. For example:
-- Windows: `C:/Users/username/projects/mcp-knowledge-graph/dist/index.js`
-- macOS/Linux: `/home/username/projects/mcp-knowledge-graph/dist/index.js`
-
-## Verification
-
-To verify installation:
-
-1. Start Claude Desktop
-2. Ask Claude: "What memory functions do you have access to? Check if you have access to functions like get_working_memory or get_relevant_entities."
-3. Claude should list the enhanced memory functions including `get_relevant_entities`, `get_function_guidelines`, etc.
-
-## Enhanced Memory Features
-
-### Context Window Optimization
-- `read_graph` now returns only entity names and types by default
-- This significantly reduces context window usage
-- Full entity details available on demand with the `fullDetails` parameter
-
-### Temporal Awareness
-- All entities and relations include timestamps for creation and last access
-- Access counters track usage patterns over time
-- Entities gain relevance scores based on access frequency
-
-### Working Memory Context
-- A separate working memory context system tracks currently active entities
-- Entities are ranked by relevance based on access patterns
-- Automatic tracking of recently discussed topics
-- Current conversation topic tracking
-
-### Memory Triggers
-- Automatic detection of when memory functions should be used
-- Identifies patterns in user messages that indicate memory operations
-- Provides guidance on when to store vs. retrieve information
-
-### Documentation Guidelines
-- Built-in standards for entity naming conventions
-- Guidelines for effective observation formatting
-- Clear rules for what information should/shouldn't be stored
-
-## Available Memory Tools
-
-### Core Tools
-
-| Function | Description | Parameters |
-|----------|-------------|------------|
-| `create_entities` | Create new entities | `entities`: array of entity objects |
-| `create_relations` | Create connections between entities | `relations`: array of relation objects |
-| `add_observations` | Add information to existing entities | `observations`: array of observation objects |
-| `delete_entities` | Remove entities | `entityNames`: array of entity names |
-| `delete_observations` | Remove specific observations | `deletions`: array of deletion objects |
-| `delete_relations` | Remove relationships | `relations`: array of relation objects |
-| `read_graph` | Read knowledge graph | `fullDetails` (optional): boolean |
-| `search_nodes` | Search for entities | `query`: string |
-| `open_nodes` | Retrieve specific entities | `names`: array of entity names |
-
-### Enhanced Memory Tools
-
-| Function | Description | Parameters |
-|----------|-------------|------------|
-| `get_recent_entities` | Get recently accessed entities | `limit` (optional): number |
-| `get_relevant_entities` | Get contextually relevant entities | `limit` (optional): number |
-| `get_function_guidelines` | Get memory function usage guidelines | `functionName` (optional): string |
-| `get_documentation_standards` | Get documentation standards | none |
-| `get_working_memory` | Get current working memory context | none |
-| `set_current_topic` | Set the current conversation topic | `topic`: string |
-| `process_user_message` | Detect memory triggers in message | `message`: string |
-
-## Example Usage Patterns
-
-### Entity Creation
-
-```javascript
-// Create a new person entity
-await knowledgeGraphManager.createEntities([{
-  name: "person_JohnDoe",
-  entityType: "Person",
-  observations: [
-    "Full name is John Doe",
-    "Works as a software engineer", 
-    "Has been a customer since 2025-01-15"
+  "entities": [
+    { "name": "person_JohnDoe", "entityType": "Person" },
+    { "name": "project_Dashboard", "entityType": "Project" }
+  ],
+  "relations": [
+    { "from": "person_JohnDoe", "to": "project_Dashboard", "relationType": "manages" }
   ]
-}]);
+}
 ```
 
-### Topic-Based Memory Retrieval
+When `fullDetails` is `true`:
+```json
+{
+  "entities": [
+    {
+      "name": "person_JohnDoe", 
+      "entityType": "Person",
+      "observations": [
+        "Full name is John Doe",
+        "Works as a software engineer"
+      ],
+      "createdAt": "2025-03-01T12:34:56Z",
+      "lastAccessed": "2025-03-02T09:45:22Z",
+      "accessCount": 5
+    },
+    {
+      "name": "project_Dashboard", 
+      "entityType": "Project",
+      "observations": [
+        "A data visualization project started on 2025-01-15"
+      ],
+      "createdAt": "2025-03-01T13:45:12Z",
+      "lastAccessed": "2025-03-02T09:45:22Z",
+      "accessCount": 3
+    }
+  ],
+  "relations": [
+    {
+      "from": "person_JohnDoe", 
+      "to": "project_Dashboard", 
+      "relationType": "manages",
+      "createdAt": "2025-03-01T13:50:22Z",
+      "lastAccessed": "2025-03-02T09:45:22Z"
+    }
+  ]
+}
+```
+
+### How To Use read_graph Effectively
 
 ```javascript
-// When the user asks about a topic:
-const triggers = await knowledgeGraphManager.processUserMessage(
-  "What do you remember about my project?"
-);
+// Get a lightweight overview (RECOMMENDED FOR MOST CASES)
+const graph = await knowledgeGraphManager.readGraph();
+// Only contains entity names and types, preserving context window
 
-if (triggers.includes('retrieve')) {
-  // Search for relevant entities
-  const projectInfo = await knowledgeGraphManager.searchNodes("project");
-  
-  // Update current topic
-  await knowledgeGraphManager.setCurrentTopic("user's projects");
-}
+// Get complete details when necessary
+const fullGraph = await knowledgeGraphManager.readGraph(true);
+// Contains all entity data including observations
 ```
 
-### Memory Consolidation
-
-```javascript
-// At the start of a conversation
-const workingMemory = await knowledgeGraphManager.getWorkingMemory();
-const relevantEntities = await knowledgeGraphManager.getRelevantEntities(5);
-
-// Use this information to personalize the conversation
-```
-
-## Technical Implementation Details
-
-### read_graph Implementation
-
-The optimized `read_graph` function is central to our enhancements:
-
-```typescript
-async readGraph(fullDetails: boolean = false): Promise<KnowledgeGraph | SummaryKnowledgeGraph> {
-  const graph = await this.loadGraph();
-  
-  if (fullDetails) {
-    // Update access timestamps for all entities
-    const now = new Date().toISOString();
-    graph.entities.forEach(entity => {
-      entity.lastAccessed = now;
-      entity.accessCount = (entity.accessCount || 0) + 1;
-    });
-    await this.saveGraph(graph);
-    
-    return graph;
-  }
-  
-  // Return a lightweight version with only entity names and types
-  return {
-    entities: graph.entities.map(entity => ({
-      name: entity.name,
-      entityType: entity.entityType
-    })),
-    relations: graph.relations
-  };
-}
-```
-
-### Working Memory Structure
-
-Our working memory system maintains session context:
-
-```typescript
-interface WorkingMemoryContext {
-  activeEntities: string[]; // Currently active entities in conversation
-  recentlyDiscussed: {
-    entity: string,
-    timestamp: string, // ISO timestamp
-    relevanceScore: number
-  }[];
-  currentTopic: string;
-  pendingInformation: any[];
-  lastUpdated: string; // ISO timestamp
-}
-```
-
-## System Prompt Example
-
-For optimal usage, add this to your Claude system prompt:
+### Usage Example with Claude
 
 ```
-Follow these steps for optimal memory management:
+Human: What do you know about me?
 
-1. Start conversations by checking for context:
-   - Use get_working_memory and get_relevant_entities
-   - Process the user's messages with process_user_message to detect memory operations
+Claude: Let me check my memory.
 
-2. Use smart retrieval:
-   - Use search_nodes for specific topics
-   - For known entities, use open_nodes for details
-   - Remember read_graph only returns names/types by default
+<function_call>
+read_graph()
+</function_call>
 
-3. Follow documentation best practices:
-   - Use get_documentation_standards for consistent formatting
-   - Track conversation topics with set_current_topic
-   - Structure entities with proper naming (e.g., person_Name, project_Title)
-
-4. Prioritize important information:
-   - Store persistent preferences, project details, and explicit requests
-   - Format observations as complete statements with context
-   - Include relevant dates and attribution in observations
+I can see I have information about you stored in my memory. Would you like me to share what I know about person_JohnDoe?
 ```
 
-## Storage and Performance
+## All Available Memory Functions
 
-- The knowledge graph is stored in a JSONL file for simplicity and portability
-- Working memory is stored in a separate JSON file to maintain session context
-- The server is optimized for typical personal usage (hundreds to thousands of entities)
-- All operations are asynchronous and support promise-based workflows
+| Function | Purpose | Key Parameters |
+|----------|---------|----------------|
+| `read_graph` | Get overview of all entities | `fullDetails`: boolean (default: false) |
+| `open_nodes` | Get specific entities by name | `names`: string[] |
+| `search_nodes` | Find entities by keyword | `query`: string |
+| `create_entities` | Create new entities | `entities`: Entity[] |
+| `create_relations` | Create connections | `relations`: Relation[] |
+| `add_observations` | Add info to entities | `observations`: {entityName, contents}[] |
+| `get_recent_entities` | Get recently accessed | `limit`: number (default: 5) |
+| `get_relevant_entities` | Get contextually relevant | `limit`: number (default: 5) |
+| `get_function_guidelines` | Get usage guidance | `functionName`: string (optional) |
+| `get_documentation_standards` | Get doc standards | none |
+| `get_working_memory` | Get session context | none |
+| `set_current_topic` | Set conversation topic | `topic`: string |
+| `process_user_message` | Detect memory triggers | `message`: string |
 
-## Troubleshooting
+## Recommended Claude System Prompt
 
-### Common Issues
+Use this system prompt to take full advantage of the enhanced memory features:
 
-1. **Module not found error**:
-   - Ensure you've checked out the `enhance-memory-management` branch
-   - Verify paths in configuration are absolute and correct
-   - Run `npm run build` to generate the dist folder
+```
+When using memory, follow these best practices:
 
-2. **Claude doesn't use the enhanced functions**:
-   - Verify Claude Desktop is configured to use "memory" as the server name
-   - Check Claude Desktop logs for connection errors
-   - Restart Claude Desktop after configuration changes
+1. Start conversations by checking context:
+   - First use get_working_memory and get_relevant_entities(5)
+   - Use read_graph() WITHOUT fullDetails parameter to preserve context window
+   - For specific entities, use open_nodes(["entity_name"])
 
-3. **Working memory not persisting**:
-   - Check file permissions for the memory.jsonl file
-   - Verify the path in your configuration exists and is writable
+2. For memory retrieval:
+   - Process user messages with process_user_message to detect retrieval needs
+   - Use search_nodes for keyword searches
+   - Use get_recent_entities when recency matters
 
-## Documentation
+3. When storing information:
+   - Follow documentation standards from get_documentation_standards()
+   - Use entity prefixes (person_, project_, etc.)
+   - Include full context in observations
+   - Track the current topic with set_current_topic
 
-For comprehensive guidance on effective memory usage, refer to [AI_MEMORY_GUIDE.md](AI_MEMORY_GUIDE.md).
+4. Always check function guidelines if unsure:
+   - Use get_function_guidelines("function_name") for specific guidance
+```
 
-For detailed setup instructions, see [SETUP.md](SETUP.md).
+## Detailed Setup Instructions
+
+For complete installation and configuration details, see [SETUP.md](SETUP.md).
+
+For guidance on effective memory usage patterns, see [AI_MEMORY_GUIDE.md](AI_MEMORY_GUIDE.md).
 
 ## License
 
-This MCP server is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License - See [LICENSE](LICENSE) file for details.
