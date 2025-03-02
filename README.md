@@ -13,10 +13,6 @@ This lets Claude remember information about the user across chats.
 mcp-knowledge-graph
 ```
 
-![screen-of-server-name](img/server-name.png)
-
-![read-function](/img/read-function.png)
-
 ## Core Concepts
 
 ### Entities
