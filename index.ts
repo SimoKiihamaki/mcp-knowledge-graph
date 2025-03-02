@@ -33,6 +33,12 @@ interface Entity {
   observations: string[];
 }
 
+// Lightweight entity with only name and type
+interface EntitySummary {
+  name: string;
+  entityType: string;
+}
+
 interface Relation {
   from: string;
   to: string;
@@ -41,6 +47,12 @@ interface Relation {
 
 interface KnowledgeGraph {
   entities: Entity[];
+  relations: Relation[];
+}
+
+// Add a simplified graph structure with only names and types
+interface SummaryKnowledgeGraph {
+  entities: EntitySummary[];
   relations: Relation[];
 }
 
@@ -135,8 +147,22 @@ class KnowledgeGraphManager {
     await this.saveGraph(graph);
   }
 
-  async readGraph(): Promise<KnowledgeGraph> {
-    return this.loadGraph();
+  // Modified to support summary mode - returns just names and types by default
+  async readGraph(fullDetails: boolean = false): Promise<KnowledgeGraph | SummaryKnowledgeGraph> {
+    const graph = await this.loadGraph();
+    
+    if (fullDetails) {
+      return graph;
+    }
+    
+    // Return a lightweight version with only entity names and types
+    return {
+      entities: graph.entities.map(entity => ({
+        name: entity.name,
+        entityType: entity.entityType
+      })),
+      relations: graph.relations
+    };
   }
 
   // Very basic search function
@@ -343,10 +369,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "read_graph",
-        description: "Read the entire knowledge graph",
+        description: "Read the knowledge graph, by default returns only entity names and types to save context window space",
         inputSchema: {
           type: "object",
-          properties: {},
+          properties: {
+            fullDetails: { 
+              type: "boolean", 
+              description: "Set to true to return complete entity data including observations. Default is false to save context window space." 
+            },
+          },
         },
       },
       {
@@ -403,7 +434,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       await knowledgeGraphManager.deleteRelations(args.relations as Relation[]);
       return { content: [{ type: "text", text: "Relations deleted successfully" }] };
     case "read_graph":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.readGraph(), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.readGraph(args.fullDetails as boolean || false), null, 2) }] };
     case "search_nodes":
       return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.searchNodes(args.query as string), null, 2) }] };
     case "open_nodes":
