@@ -133,12 +133,12 @@ const functionGuidelines: Record<string, FunctionGuidelines> = {
       "When you're confident the information being discussed is new"
     ],
     bestPractices: [
-      "Start with summary view (default), request fullDetails only when needed",
+      "Use open_nodes for specific entities to get full details when needed",
       "Follow up with open_nodes for specific entities rather than downloading everything"
     ],
     examples: [
       {
-        input: {fullDetails: false},
+        input: {},
         context: "User asks: 'What do you know about my team?'",
         explanation: "Check for existing knowledge before responding"
       }
@@ -456,23 +456,19 @@ class KnowledgeGraphManager {
     await this.saveGraph(graph);
   }
 
-  // Modified to support summary mode - returns just names and types by default
-  async readGraph(fullDetails: boolean = false): Promise<KnowledgeGraph | SummaryKnowledgeGraph> {
+  // Modified to ALWAYS return summary mode, ignoring fullDetails parameter
+  async readGraph(fullDetails: boolean = false): Promise<SummaryKnowledgeGraph> {
     const graph = await this.loadGraph();
     
-    if (fullDetails) {
-      // Update access timestamps for all entities
-      const now = new Date().toISOString();
-      graph.entities.forEach(entity => {
-        entity.lastAccessed = now;
-        entity.accessCount = (entity.accessCount || 0) + 1;
-      });
-      await this.saveGraph(graph);
-      
-      return graph;
-    }
+    // Update access timestamps for all entities, even though we won't return full details
+    const now = new Date().toISOString();
+    graph.entities.forEach(entity => {
+      entity.lastAccessed = now;
+      entity.accessCount = (entity.accessCount || 0) + 1;
+    });
+    await this.saveGraph(graph);
     
-    // Return a lightweight version with only entity names and types
+    // Always return the lightweight version regardless of fullDetails parameter
     return {
       entities: graph.entities.map(entity => ({
         name: entity.name,
@@ -792,13 +788,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "read_graph",
-        description: "Read the knowledge graph, by default returns only entity names and types to save context window space",
+        description: "Read the knowledge graph, always returns only entity names and types to save context window space",
         inputSchema: {
           type: "object",
           properties: {
             fullDetails: { 
               type: "boolean", 
-              description: "Set to true to return complete entity data including observations. Default is false to save context window space." 
+              description: "Parameter is ignored, function always returns lightweight version to preserve context window" 
             },
           },
         },
@@ -940,7 +936,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       await knowledgeGraphManager.deleteRelations(args.relations as Relation[]);
       return { content: [{ type: "text", text: "Relations deleted successfully" }] };
     case "read_graph":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.readGraph(args.fullDetails as boolean || false), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.readGraph(), null, 2) }] };
     case "search_nodes":
       return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.searchNodes(args.query as string), null, 2) }] };
     case "open_nodes":
