@@ -1,219 +1,186 @@
-# Knowledge Graph Memory Server
+# Enhanced Knowledge Graph Memory Server
 
-An improved implementation of persistent memory using a local knowledge graph with a customizable `--memory-path`.
+An optimized implementation of persistent memory for Claude using a knowledge graph with context window management.
 
-This lets Claude remember information about the user across chats.
+## Critical Configuration Note
 
-> [!NOTE]
-> This is a fork of the original [Memory Server](https://github.com/modelcontextprotocol/servers/tree/main/src/memory) and is intended to not use the ephemeral memory npx installation method.
-
-## Server Name
-
-```txt
-mcp-knowledge-graph
-```
-
-## Core Concepts
-
-### Entities
-
-Entities are the primary nodes in the knowledge graph. Each entity has:
-
-- A unique name (identifier)
-- An entity type (e.g., "person", "organization", "event")
-- A list of observations
-
-Example:
+In Claude Desktop, this server **MUST** be registered as `memory` (not "knowledge-graph" or "mcp-knowledge-graph"):
 
 ```json
-{
-  "name": "John_Smith",
-  "entityType": "person",
-  "observations": ["Speaks fluent Spanish"]
-}
-```
-
-### Relations
-
-Relations define directed connections between entities. They are always stored in active voice and describe how entities interact or relate to each other.
-
-Example:
-
-```json
-{
-  "from": "John_Smith",
-  "to": "Anthropic",
-  "relationType": "works_at"
-}
-```
-
-### Observations
-
-Observations are discrete pieces of information about an entity. They are:
-
-- Stored as strings
-- Attached to specific entities
-- Can be added or removed independently
-- Should be atomic (one fact per observation)
-
-Example:
-
-```json
-{
-  "entityName": "John_Smith",
-  "observations": [
-    "Speaks fluent Spanish",
-    "Graduated in 2019",
-    "Prefers morning meetings"
+"memory": {
+  "command": "node",
+  "args": [
+    "/path/to/dist/index.js",
+    "--memory-path", 
+    "/path/to/memory.jsonl"
   ]
 }
 ```
 
-## API
+## Quick Installation
 
-### Tools
+```bash
+git clone https://github.com/SimoKiihamaki/mcp-knowledge-graph.git
+cd mcp-knowledge-graph
+git checkout enhance-memory-management
+npm install
+npm run build
+```
 
-- **create_entities**
-  - Create multiple new entities in the knowledge graph
-  - Input: `entities` (array of objects)
-    - Each object contains:
-      - `name` (string): Entity identifier
-      - `entityType` (string): Type classification
-      - `observations` (string[]): Associated observations
-  - Ignores entities with existing names
+## What's Different in This Version?
 
-- **create_relations**
-  - Create multiple new relations between entities
-  - Input: `relations` (array of objects)
-    - Each object contains:
-      - `from` (string): Source entity name
-      - `to` (string): Target entity name
-      - `relationType` (string): Relationship type in active voice
-  - Skips duplicate relations
+This enhanced fork addresses critical limitations in the original memory server:
 
-- **add_observations**
-  - Add new observations to existing entities
-  - Input: `observations` (array of objects)
-    - Each object contains:
-      - `entityName` (string): Target entity
-      - `contents` (string[]): New observations to add
-  - Returns added observations per entity
-  - Fails if entity doesn't exist
+1. **Context Window Optimization**: The original server always returned complete entity data with all observations, rapidly filling Claude's context window. Our version only returns names and types by default.
 
-- **delete_entities**
-  - Remove entities and their relations
-  - Input: `entityNames` (string[])
-  - Cascading deletion of associated relations
-  - Silent operation if entity doesn't exist
+2. **Function Documentation**: Original server provided no guidance on when to use memory functions. We've added built-in guidelines accessible via `get_function_guidelines`.
 
-- **delete_observations**
-  - Remove specific observations from entities
-  - Input: `deletions` (array of objects)
-    - Each object contains:
-      - `entityName` (string): Target entity
-      - `observations` (string[]): Observations to remove
-  - Silent operation if observation doesn't exist
+3. **Smart Memory Management**: Original had no tools to retrieve entities based on relevance. We've added functions to get recently accessed and contextually relevant entities.
 
-- **delete_relations**
-  - Remove specific relations from the graph
-  - Input: `relations` (array of objects)
-    - Each object contains:
-      - `from` (string): Source entity name
-      - `to` (string): Target entity name
-      - `relationType` (string): Relationship type
-  - Silent operation if relation doesn't exist
+4. **Working Memory**: Original provided no session tracking. We've added a working memory context system that maintains information about the current conversation.
 
-- **read_graph**
-  - Read the entire knowledge graph
-  - No input required
-  - Returns complete graph structure with all entities and relations
+5. **Temporal Awareness**: Original had no concept of when entities were created or accessed. We track creation/access timestamps and access frequency.
 
-- **search_nodes**
-  - Search for nodes based on query
-  - Input: `query` (string)
-  - Searches across:
-    - Entity names
-    - Entity types
-    - Observation content
-  - Returns matching entities and their relations
+## The read_graph Function Explained
 
-- **open_nodes**
-  - Retrieve specific nodes by name
-  - Input: `names` (string[])
-  - Returns:
-    - Requested entities
-    - Relations between requested entities
-  - Silently skips non-existent nodes
+The `read_graph` function is the most important memory tool, and works differently in our implementation:
 
-## Usage with Claude Desktop
+### Parameters
 
-### Setup
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `fullDetails` | boolean | `false` | When `false`, returns only entity names and types. When `true`, returns complete entities with all observations. |
 
-Add this to your claude_desktop_config.json:
+### Return Values
 
+When `fullDetails` is `false` (default):
 ```json
 {
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ]
-    }
-  }
+  "entities": [
+    { "name": "person_JohnDoe", "entityType": "Person" },
+    { "name": "project_Dashboard", "entityType": "Project" }
+  ],
+  "relations": [
+    { "from": "person_JohnDoe", "to": "project_Dashboard", "relationType": "manages" }
+  ]
 }
 ```
 
-### Custom Memory Path
-
-You can specify a custom path for the memory file:
-
+When `fullDetails` is `true`:
 ```json
 {
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory", "--memory-path", "/path/to/your/memory.jsonl"]
+  "entities": [
+    {
+      "name": "person_JohnDoe", 
+      "entityType": "Person",
+      "observations": [
+        "Full name is John Doe",
+        "Works as a software engineer"
+      ],
+      "createdAt": "2025-03-01T12:34:56Z",
+      "lastAccessed": "2025-03-02T09:45:22Z",
+      "accessCount": 5
+    },
+    {
+      "name": "project_Dashboard", 
+      "entityType": "Project",
+      "observations": [
+        "A data visualization project started on 2025-01-15"
+      ],
+      "createdAt": "2025-03-01T13:45:12Z",
+      "lastAccessed": "2025-03-02T09:45:22Z",
+      "accessCount": 3
     }
-  }
+  ],
+  "relations": [
+    {
+      "from": "person_JohnDoe", 
+      "to": "project_Dashboard", 
+      "relationType": "manages",
+      "createdAt": "2025-03-01T13:50:22Z",
+      "lastAccessed": "2025-03-02T09:45:22Z"
+    }
+  ]
 }
 ```
 
-If no path is specified, it will default to memory.jsonl in the server's installation directory.
+### How To Use read_graph Effectively
 
-### System Prompt
+```javascript
+// Get a lightweight overview (RECOMMENDED FOR MOST CASES)
+const graph = await knowledgeGraphManager.readGraph();
+// Only contains entity names and types, preserving context window
 
-The prompt for utilizing memory depends on the use case. Changing the prompt will help the model determine the frequency and types of memories created.
-
-Here is an example prompt for chat personalization. You could use this prompt in the "Custom Instructions" field of a [Claude.ai Project](https://www.anthropic.com/news/projects).
-
-```txt
-Follow these steps for each interaction:
-
-1. User Identification:
-   - You should assume that you are interacting with default_user
-   - If you have not identified default_user, proactively try to do so.
-
-2. Memory Retrieval:
-   - Always begin your chat by saying only "Remembering..." and retrieve all relevant information from your knowledge graph
-   - Always refer to your knowledge graph as your "memory"
-
-3. Memory
-   - While conversing with the user, be attentive to any new information that falls into these categories:
-     a) Basic Identity (age, gender, location, job title, education level, etc.)
-     b) Behaviors (interests, habits, etc.)
-     c) Preferences (communication style, preferred language, etc.)
-     d) Goals (goals, targets, aspirations, etc.)
-     e) Relationships (personal and professional relationships up to 3 degrees of separation)
-
-4. Memory Update:
-   - If any new information was gathered during the interaction, update your memory as follows:
-     a) Create entities for recurring organizations, people, and significant events
-     b) Connect them to the current entities using relations
-     b) Store facts about them as observations
+// Get complete details when necessary
+const fullGraph = await knowledgeGraphManager.readGraph(true);
+// Contains all entity data including observations
 ```
+
+### Usage Example with Claude
+
+```
+Human: What do you know about me?
+
+Claude: Let me check my memory.
+
+<function_call>
+read_graph()
+</function_call>
+
+I can see I have information about you stored in my memory. Would you like me to share what I know about person_JohnDoe?
+```
+
+## All Available Memory Functions
+
+| Function | Purpose | Key Parameters |
+|----------|---------|----------------|
+| `read_graph` | Get overview of all entities | `fullDetails`: boolean (default: false) |
+| `open_nodes` | Get specific entities by name | `names`: string[] |
+| `search_nodes` | Find entities by keyword | `query`: string |
+| `create_entities` | Create new entities | `entities`: Entity[] |
+| `create_relations` | Create connections | `relations`: Relation[] |
+| `add_observations` | Add info to entities | `observations`: {entityName, contents}[] |
+| `get_recent_entities` | Get recently accessed | `limit`: number (default: 5) |
+| `get_relevant_entities` | Get contextually relevant | `limit`: number (default: 5) |
+| `get_function_guidelines` | Get usage guidance | `functionName`: string (optional) |
+| `get_documentation_standards` | Get doc standards | none |
+| `get_working_memory` | Get session context | none |
+| `set_current_topic` | Set conversation topic | `topic`: string |
+| `process_user_message` | Detect memory triggers | `message`: string |
+
+## Recommended Claude System Prompt
+
+Use this system prompt to take full advantage of the enhanced memory features:
+
+```
+When using memory, follow these best practices:
+
+1. Start conversations by checking context:
+   - First use get_working_memory and get_relevant_entities(5)
+   - Use read_graph() WITHOUT fullDetails parameter to preserve context window
+   - For specific entities, use open_nodes(["entity_name"])
+
+2. For memory retrieval:
+   - Process user messages with process_user_message to detect retrieval needs
+   - Use search_nodes for keyword searches
+   - Use get_recent_entities when recency matters
+
+3. When storing information:
+   - Follow documentation standards from get_documentation_standards()
+   - Use entity prefixes (person_, project_, etc.)
+   - Include full context in observations
+   - Track the current topic with set_current_topic
+
+4. Always check function guidelines if unsure:
+   - Use get_function_guidelines("function_name") for specific guidance
+```
+
+## Detailed Setup Instructions
+
+For complete installation and configuration details, see [SETUP.md](SETUP.md).
+
+For guidance on effective memory usage patterns, see [AI_MEMORY_GUIDE.md](AI_MEMORY_GUIDE.md).
 
 ## License
 
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
+MIT License - See [LICENSE](LICENSE) file for details.
