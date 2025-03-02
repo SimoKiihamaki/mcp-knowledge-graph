@@ -35,10 +35,34 @@ Example:
 
 ### Recommended Memory Workflow
 
-1. Start conversations by checking for relevant entities with `get_relevant_entities`
-2. When user references specific topics, use `search_nodes` or `open_nodes`
-3. As conversation progresses, update entities with new observations
-4. Set the current topic with `set_current_topic` to improve relevance tracking
+1. Start conversations by checking the memory landscape:
+   - Use `read_graph()` to get an overview of entity names and types
+   - Check for relevant entities with `get_relevant_entities(5)`
+   - Get working memory context with `get_working_memory()`
+
+2. For detailed information retrieval:
+   - When you know the entity name, use `open_nodes(["entity_name"])`
+   - When searching by keyword, use `search_nodes("keyword")`
+   - For recent entities, use `get_recent_entities()`
+
+3. As conversation progresses:
+   - Update entities with new observations using `add_observations`
+   - Set the current topic with `set_current_topic` to improve relevance tracking
+
+## Important Note About read_graph
+
+The `read_graph` function **always** returns only entity names and types, never the observations. This is by design to preserve context window space. To get complete entity information with observations, you must use either:
+
+- `open_nodes(["entity_name"])` for specific known entities
+- `search_nodes("keyword")` to find and get details about relevant entities
+
+```javascript
+// This ONLY gives you entity names and types:
+const overview = await knowledgeGraphManager.readGraph();
+
+// To get full entity details including observations:
+const entityDetails = await knowledgeGraphManager.openNodes(["person_JohnDoe"]);
+```
 
 ## Documentation Best Practices
 
@@ -161,6 +185,21 @@ const projectData = await knowledgeGraphManager.openNodes(["project_QuarterlyRep
 const relevantEntities = await knowledgeGraphManager.getRelevantEntities(3);
 ```
 
+## Effective Memory Conversation Flow
+
+Here is a typical conversation flow that demonstrates effective memory usage:
+
+```
+Human: Can you remind me about my project deadlines?
+
+AI: Let me check my memory.
+(Calls read_graph() to get an overview of entities)
+(Notices person_User and project_QuarterlyReport entities)
+(Calls openNodes(["project_QuarterlyReport"]) to get details)
+
+I can see you have a quarterly report due on April 15th, 2025. Would you like more details about this project?
+```
+
 ## Prioritizing Information
 
 Not all information needs to be stored. Focus on:
@@ -185,7 +224,7 @@ The working memory helps track:
 
 ## Special Considerations
 
-- **Context window efficiency**: By default, `read_graph` returns only entity names and types
+- **Context window efficiency**: `read_graph` always returns only entity names and types
 - **Time-awareness**: All entities track creation and access timestamps
 - **Relevance tracking**: Entities have a relevance score that increases with access
 - **Function guidelines**: Use `get_function_guidelines` to understand when to use specific functions
