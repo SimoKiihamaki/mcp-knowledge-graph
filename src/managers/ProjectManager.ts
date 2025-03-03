@@ -1,6 +1,6 @@
-import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager.js';
-import { ProjectEntity, Entity, EntitySummary } from '../types/interfaces.js';
-import { getCurrentTimestamp } from '../core/utils.js';
+import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager';
+import { ProjectEntity, Entity, EntitySummary } from '../types/interfaces';
+import { getCurrentTimestamp } from '../core/utils';
 
 /**
  * Manages project-related operations for the knowledge graph
@@ -269,4 +269,4 @@ export class ProjectManager {
     
     return true;
   }
-} 
+}
