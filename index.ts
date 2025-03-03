@@ -311,7 +311,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "create_entities":
         const entities = [];
-        if (Array.isArray(args.entities)) {
+        if (args && Array.isArray(args.entities)) {
           for (const entity of args.entities) {
             const result = await knowledgeGraphManager.createEntity(
               entity.name,
@@ -328,7 +328,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_relations":
         const relations = [];
-        if (Array.isArray(args.relations)) {
+        if (args && Array.isArray(args.relations)) {
           for (const relation of args.relations) {
             const result = await knowledgeGraphManager.createRelation(
               relation.from,
@@ -343,7 +343,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "add_observations":
         const results = [];
-        if (Array.isArray(args.observations)) {
+        if (args && Array.isArray(args.observations)) {
           for (const observation of args.observations) {
             const entity = await knowledgeGraphManager.getEntity(observation.entityName);
             if (entity) {
@@ -361,8 +361,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
 
       case "delete_entities":
-        for (const entityName of args.entityNames) {
-          await knowledgeGraphManager.deleteEntity(entityName);
+        if (args && Array.isArray(args.entityNames)) {
+          for (const entityName of args.entityNames) {
+            await knowledgeGraphManager.deleteEntity(entityName);
+          }
         }
         return { content: [{ type: "text", text: "Entities deleted successfully" }] };
 
@@ -371,8 +373,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(graph, null, 2) }] };
 
       case "search_nodes":
+        if (!args) return { content: [{ type: "text", text: "No search parameters provided" }] };
+        
         const searchResults = await searchManager.search({
-          query: args.query,
+          query: args.query || "",
           entityTypes: args.entityTypes,
           projectId: args.projectId,
           tags: args.tags,
@@ -381,15 +385,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(searchResults, null, 2) }] };
 
       case "open_nodes":
+        if (!args || !args.names) return { content: [{ type: "text", text: "No node names provided" }] };
+        
         const nodes = await Promise.all(
           args.names.map((name: string) => knowledgeGraphManager.getEntity(name))
         );
-        return { content: [{ type: "text", text: JSON.stringify({ nodes: nodes.filter(node => node !== null) }, null, 2) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ nodes: nodes.filter((node: Entity | null) => node !== null) }, null, 2) }] };
 
       case "get_recent_entities":
         // First get all entity names, then retrieve their details
         const summaryGraph = await knowledgeGraphManager.readGraph();
-        const entityNames = summaryGraph.entities.map(e => e.name);
+        const entityNames = summaryGraph.entities.map((e: any) => e.name);
         
         // Get full entity details
         const fullEntities: Entity[] = [];
@@ -407,20 +413,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             const bDate = b.lastAccessed ? new Date(b.lastAccessed).getTime() : 0;
             return bDate - aDate;
           })
-          .slice(0, args.limit || 5);
+          .slice(0, args && args.limit ? args.limit : 5);
         
         return { content: [{ type: "text", text: JSON.stringify({ entities: recentEntities }, null, 2) }] };
 
       case "get_relevant_entities":
+        const topic = knowledgeGraphManager.getWorkingMemory().currentTopic || "";
         return { content: [{ type: "text", text: JSON.stringify(await searchManager.search({
-          query: knowledgeGraphManager.getWorkingMemory().currentTopic || "",
-          limit: args.limit || 5
+          query: topic,
+          limit: args && args.limit ? args.limit : 5
         }), null, 2) }] };
 
       case "get_function_guidelines":
         // This functionality isn't directly implemented in our modular version,
         // so we'll provide a simplified implementation
-        const guidelines = {
+        const guidelines: Record<string, any> = {
           read_graph: {
             whenToUse: [
               "At the beginning of a conversation to check existing knowledge",
@@ -436,7 +443,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           // Add other function guidelines as needed
         };
         
-        if (args.functionName && guidelines[args.functionName]) {
+        if (args && args.functionName && guidelines[args.functionName]) {
           return { content: [{ type: "text", text: JSON.stringify(guidelines[args.functionName], null, 2) }] };
         }
         return { content: [{ type: "text", text: JSON.stringify(guidelines, null, 2) }] };
@@ -466,13 +473,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(knowledgeGraphManager.getWorkingMemory(), null, 2) }] };
 
       case "set_current_topic":
-        knowledgeGraphManager.setCurrentTopic(args.topic);
-        return { content: [{ type: "text", text: `Current topic set to: ${args.topic}` }] };
+        if (args && args.topic) {
+          knowledgeGraphManager.setCurrentTopic(args.topic);
+          return { content: [{ type: "text", text: `Current topic set to: ${args.topic}` }] };
+        }
+        return { content: [{ type: "text", text: "No topic provided" }] };
 
       case "process_user_message":
         // Simplified implementation
+        if (!args || !args.message) return { content: [{ type: "text", text: "No message provided" }] };
+        
+        const message = args.message.toString().toLowerCase();
         const triggers = [];
-        const message = args.message.toLowerCase();
         
         if (/remember|told you|mentioned|said|earlier|previously|last time/i.test(message)) {
           triggers.push('retrieve');
@@ -491,7 +503,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error handling tool call ${name}:`, error);
     throw error;
   }
@@ -507,12 +519,12 @@ knowledgeGraphManager.readGraph(false)
       .then(() => {
         console.error("Knowledge Graph MCP Server running on stdio");
       })
-      .catch((error) => {
+      .catch((error: any) => {
         console.error("Error connecting to transport:", error);
         process.exit(1);
       });
   })
-  .catch((error) => {
+  .catch((error: any) => {
     console.error('Failed to initialize knowledge graph:', error);
     process.exit(1);
   });
