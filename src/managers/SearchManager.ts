@@ -1,6 +1,6 @@
-import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager';
-import { Entity, SearchFilter } from '../types/interfaces';
-import { calculateStringDistance } from '../core/utils';
+import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager.js';
+import { Entity, SearchFilter } from '../types/interfaces.js';
+import { calculateStringDistance } from '../core/utils.js';
 
 /**
  * Manages search operations for the knowledge graph
