@@ -1,5 +1,5 @@
-import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager.js';
-import { Entity, EntitySummary } from '../types/interfaces.js';
+import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager';
+import { Entity, EntitySummary } from '../types/interfaces';
 
 /**
  * Manages tag operations for entities in the knowledge graph
@@ -231,4 +231,4 @@ export class TagManager {
     
     return entities;
   }
-} 
+}
