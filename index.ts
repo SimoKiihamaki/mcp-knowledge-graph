@@ -59,6 +59,7 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+      // Core entity and relation management
       {
         name: "create_entities",
         description: "Create multiple new entities in the knowledge graph",
@@ -175,6 +176,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      
+      // Search functionality
       {
         name: "search_nodes",
         description: "Search for nodes in the knowledge graph based on a query",
@@ -213,16 +216,166 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["names"],
         },
       },
+      
+      // Project management
+      {
+        name: "create_project",
+        description: "Create a new project in the knowledge graph",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Project name (will also be used as ID)" },
+            description: { type: "string", description: "Optional project description" }
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "list_projects",
+        description: "List all projects in the knowledge graph",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "set_current_project",
+        description: "Set the current active project",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: { type: "string", description: "Project ID to set as active" }
+          },
+          required: ["projectId"],
+        },
+      },
+      {
+        name: "get_current_project",
+        description: "Get the current active project",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "get_recent_projects",
+        description: "Get the most recently accessed projects",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "read_project_graph",
+        description: "Get all entities for a specific project",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: { type: "string", description: "Project ID to read" }
+          },
+          required: ["projectId"],
+        },
+      },
+      
+      // Tag management
+      {
+        name: "add_tags",
+        description: "Add tags to an entity",
+        inputSchema: {
+          type: "object",
+          properties: {
+            entityName: { type: "string", description: "Name of the entity to tag" },
+            tags: { 
+              type: "array", 
+              items: { type: "string" },
+              description: "Array of tags to add"
+            }
+          },
+          required: ["entityName", "tags"],
+        },
+      },
+      {
+        name: "remove_tags",
+        description: "Remove tags from an entity",
+        inputSchema: {
+          type: "object",
+          properties: {
+            entityName: { type: "string", description: "Name of the entity" },
+            tags: { 
+              type: "array", 
+              items: { type: "string" },
+              description: "Array of tags to remove"
+            }
+          },
+          required: ["entityName", "tags"],
+        },
+      },
+      {
+        name: "get_entities_by_tag",
+        description: "Get all entities with a specific tag",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tag: { type: "string", description: "Tag to search for" },
+            projectId: { type: "string", description: "Optional project ID to filter by" }
+          },
+          required: ["tag"],
+        },
+      },
+      {
+        name: "get_all_tags",
+        description: "Get all tags used in the system with counts",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: { type: "string", description: "Optional project ID to filter by" }
+          },
+        },
+      },
+      
+      // Memory health
+      {
+        name: "get_memory_health",
+        description: "Get health metrics for the knowledge graph",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: { type: "string", description: "Optional project ID to filter by" }
+          },
+        },
+      },
+      {
+        name: "find_possible_duplicates",
+        description: "Find entities that might be duplicates based on name similarity",
+        inputSchema: {
+          type: "object",
+          properties: {
+            entityType: { type: "string", description: "Optional entity type to filter by" },
+            projectId: { type: "string", description: "Optional project ID to filter by" },
+            similarityThreshold: { type: "number", description: "Similarity threshold (0-1, default: 0.85)" }
+          },
+        },
+      },
+      {
+        name: "find_stale_entities",
+        description: "Find entities that haven't been accessed in a long time",
+        inputSchema: {
+          type: "object",
+          properties: {
+            thresholdDays: { type: "number", description: "Days threshold (default: 60)" },
+            projectId: { type: "string", description: "Optional project ID to filter by" }
+          },
+        },
+      },
+      
+      // Context and state management
       {
         name: "get_recent_entities",
         description: "Get the most recently accessed entities from the knowledge graph",
         inputSchema: {
           type: "object",
           properties: {
-            limit: { 
-              type: "number", 
-              description: "Maximum number of entities to return (default: 5)" 
-            },
+            limit: { type: "number", description: "Maximum number of entities to return (default: 5)" }
           },
         },
       },
@@ -232,10 +385,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            limit: { 
-              type: "number", 
-              description: "Maximum number of entities to return (default: 5)" 
-            },
+            limit: { type: "number", description: "Maximum number of entities to return (default: 5)" }
           },
         },
       },
@@ -245,10 +395,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            functionName: { 
-              type: "string", 
-              description: "Specific function to get guidelines for (optional, returns all if not specified)" 
-            },
+            functionName: { type: "string", description: "Specific function to get guidelines for (optional, returns all if not specified)" }
           },
         },
       },
@@ -274,10 +421,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            topic: { 
-              type: "string", 
-              description: "The current topic of conversation" 
-            },
+            topic: { type: "string", description: "The current topic of conversation" }
           },
           required: ["topic"],
         },
@@ -288,93 +432,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            message: { 
-              type: "string", 
-              description: "The user's message to analyze" 
-            },
-          },
-          required: ["message"],
-        },
-      },
-      {
-        name: "get_recent_entities",
-        description: "Get the most recently accessed entities from the knowledge graph",
-        inputSchema: {
-          type: "object",
-          properties: {
-            limit: { 
-              type: "number", 
-              description: "Maximum number of entities to return (default: 5)" 
-            },
-          },
-        },
-      },
-      {
-        name: "get_relevant_entities",
-        description: "Get the most relevant entities based on the current conversation context",
-        inputSchema: {
-          type: "object",
-          properties: {
-            limit: { 
-              type: "number", 
-              description: "Maximum number of entities to return (default: 5)" 
-            },
-          },
-        },
-      },
-      {
-        name: "get_function_guidelines",
-        description: "Get usage guidelines for knowledge graph functions to understand when and how to use them",
-        inputSchema: {
-          type: "object",
-          properties: {
-            functionName: { 
-              type: "string", 
-              description: "Specific function to get guidelines for (optional, returns all if not specified)" 
-            },
-          },
-        },
-      },
-      {
-        name: "get_documentation_standards",
-        description: "Get standards for documenting information in the knowledge graph",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      },
-      {
-        name: "get_working_memory",
-        description: "Get the current working memory context with recently accessed entities",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      },
-      {
-        name: "set_current_topic",
-        description: "Set the current conversation topic in working memory",
-        inputSchema: {
-          type: "object",
-          properties: {
-            topic: { 
-              type: "string", 
-              description: "The current topic of conversation" 
-            },
-          },
-          required: ["topic"],
-        },
-      },
-      {
-        name: "process_user_message",
-        description: "Process a user message to detect when memory functions should be used",
-        inputSchema: {
-          type: "object",
-          properties: {
-            message: { 
-              type: "string", 
-              description: "The user's message to analyze" 
-            },
+            message: { type: "string", description: "The user's message to analyze" }
           },
           required: ["message"],
         },
@@ -387,13 +445,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  if (!args && name !== "get_documentation_standards" && name !== "get_working_memory") {
-  if (!args && name !== "get_documentation_standards" && name !== "get_working_memory") {
+  if (!args && 
+      name !== "get_documentation_standards" && 
+      name !== "get_working_memory" &&
+      name !== "list_projects" &&
+      name !== "get_current_project" &&
+      name !== "get_recent_projects" &&
+      name !== "get_all_tags" &&
+      name !== "get_memory_health") {
     throw new Error(`No arguments provided for tool: ${name}`);
   }
 
   try {
     switch (name) {
+      // Core entity and relation management
       case "create_entities":
         const entities: Entity[] = [];
         if (args && Array.isArray(args.entities)) {
@@ -463,6 +528,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const graph = await knowledgeGraphManager.readGraph();
         return { content: [{ type: "text", text: JSON.stringify(graph, null, 2) }] };
 
+      // Search functionality
       case "search_nodes":
         if (!args) return { content: [{ type: "text", text: "No search parameters provided" }] };
         
@@ -485,6 +551,113 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         );
         return { content: [{ type: "text", text: JSON.stringify({ nodes: nodes.filter((node: Entity | null) => node !== null) }, null, 2) }] };
 
+      // Project management
+      case "create_project":
+        if (!args || typeof args.name !== 'string') {
+          return { content: [{ type: "text", text: "Project name is required" }] };
+        }
+        const project = await projectManager.createProject(
+          args.name,
+          args.description
+        );
+        return { content: [{ type: "text", text: JSON.stringify(project, null, 2) }] };
+        
+      case "list_projects":
+        const projects = await projectManager.listProjects();
+        return { content: [{ type: "text", text: JSON.stringify(projects, null, 2) }] };
+        
+      case "set_current_project":
+        if (!args || typeof args.projectId !== 'string') {
+          return { content: [{ type: "text", text: "Project ID is required" }] };
+        }
+        const success = await projectManager.setCurrentProject(args.projectId);
+        if (success) {
+          return { content: [{ type: "text", text: `Current project set to: ${args.projectId}` }] };
+        } else {
+          return { content: [{ type: "text", text: `Project ${args.projectId} not found` }] };
+        }
+        
+      case "get_current_project":
+        const currentProject = await projectManager.getCurrentProject();
+        if (currentProject) {
+          return { content: [{ type: "text", text: JSON.stringify(currentProject, null, 2) }] };
+        } else {
+          return { content: [{ type: "text", text: "No current project set" }] };
+        }
+        
+      case "get_recent_projects":
+        const recentProjects = await projectManager.getRecentProjects();
+        return { content: [{ type: "text", text: JSON.stringify(recentProjects, null, 2) }] };
+        
+      case "read_project_graph":
+        if (!args || typeof args.projectId !== 'string') {
+          return { content: [{ type: "text", text: "Project ID is required" }] };
+        }
+        const projectEntities = await projectManager.readProjectGraph(args.projectId);
+        return { content: [{ type: "text", text: JSON.stringify(projectEntities, null, 2) }] };
+        
+      // Tag management
+      case "add_tags":
+        if (!args || typeof args.entityName !== 'string' || !Array.isArray(args.tags)) {
+          return { content: [{ type: "text", text: "Entity name and tags array are required" }] };
+        }
+        const taggedEntity = await tagManager.addTags(args.entityName, args.tags);
+        if (taggedEntity) {
+          return { content: [{ type: "text", text: JSON.stringify(taggedEntity, null, 2) }] };
+        } else {
+          return { content: [{ type: "text", text: `Entity ${args.entityName} not found` }] };
+        }
+        
+      case "remove_tags":
+        if (!args || typeof args.entityName !== 'string' || !Array.isArray(args.tags)) {
+          return { content: [{ type: "text", text: "Entity name and tags array are required" }] };
+        }
+        const untaggedEntity = await tagManager.removeTags(args.entityName, args.tags);
+        if (untaggedEntity) {
+          return { content: [{ type: "text", text: JSON.stringify(untaggedEntity, null, 2) }] };
+        } else {
+          return { content: [{ type: "text", text: `Entity ${args.entityName} not found` }] };
+        }
+        
+      case "get_entities_by_tag":
+        if (!args || typeof args.tag !== 'string') {
+          return { content: [{ type: "text", text: "Tag is required" }] };
+        }
+        const taggedEntities = await tagManager.getEntitiesByTag(
+          args.tag,
+          typeof args.projectId === 'string' ? args.projectId : undefined
+        );
+        return { content: [{ type: "text", text: JSON.stringify(taggedEntities, null, 2) }] };
+        
+      case "get_all_tags":
+        const tags = await tagManager.getAllTags(
+          typeof args?.projectId === 'string' ? args.projectId : undefined
+        );
+        return { content: [{ type: "text", text: JSON.stringify(tags, null, 2) }] };
+        
+      // Memory health
+      case "get_memory_health":
+        const healthMetrics = await memoryHealthManager.getMemoryHealth(
+          typeof args?.projectId === 'string' ? args.projectId : undefined
+        );
+        return { content: [{ type: "text", text: JSON.stringify(healthMetrics, null, 2) }] };
+        
+      case "find_possible_duplicates":
+        const duplicates = await memoryHealthManager.findPossibleDuplicates(
+          typeof args?.entityType === 'string' ? args.entityType : undefined,
+          typeof args?.projectId === 'string' ? args.projectId : undefined,
+          typeof args?.similarityThreshold === 'number' ? args.similarityThreshold : undefined
+        );
+        return { content: [{ type: "text", text: JSON.stringify(duplicates, null, 2) }] };
+        
+      case "find_stale_entities":
+        const staleEntities = await memoryHealthManager.findStaleEntities(
+          typeof args?.thresholdDays === 'number' ? args.thresholdDays : undefined,
+          typeof args?.projectId === 'string' ? args.projectId : undefined
+        );
+        return { content: [{ type: "text", text: JSON.stringify(staleEntities, null, 2) }] };
+        
+      // Context and state management
       case "get_recent_entities":
         // First get all entity names, then retrieve their details
         const summaryGraph = await knowledgeGraphManager.readGraph();
