@@ -17,7 +17,7 @@ import { ProjectManager } from './src/managers/ProjectManager';
 import { TagManager } from './src/managers/TagManager';
 import { SearchManager } from './src/managers/SearchManager';
 import { MemoryHealthManager } from './src/managers/MemoryHealthManager';
-import { Entity, Relation } from './src/types/interfaces';
+import { Entity, Relation, SearchFilter } from './src/types/interfaces';
 
 // Parse args and handle paths safely
 const argv = minimist(process.argv.slice(2));
@@ -311,7 +311,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case "create_entities":
-        const entities = [];
+        const entities: Entity[] = [];
         if (args && Array.isArray(args.entities)) {
           for (const entity of args.entities) {
             const result = await knowledgeGraphManager.createEntity(
@@ -328,7 +328,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(entities, null, 2) }] };
 
       case "create_relations":
-        const relations = [];
+        const relations: Relation[] = [];
         if (args && Array.isArray(args.relations)) {
           for (const relation of args.relations) {
             const result = await knowledgeGraphManager.createRelation(
@@ -343,7 +343,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(relations, null, 2) }] };
 
       case "add_observations":
-        const results = [];
+        const results: { entityName: string; addedObservations: string[] }[] = [];
         if (args && Array.isArray(args.observations)) {
           for (const observation of args.observations) {
             const entity = await knowledgeGraphManager.getEntity(observation.entityName);
@@ -376,13 +376,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "search_nodes":
         if (!args) return { content: [{ type: "text", text: "No search parameters provided" }] };
         
-        const searchResults = await searchManager.search({
+        const searchFilter: SearchFilter = {
           query: args.query || "",
-          entityTypes: args.entityTypes,
-          projectId: args.projectId,
-          tags: args.tags,
+          entityTypes: args.entityTypes as string[] | undefined,
+          projectId: args.projectId as string | undefined,
+          tags: args.tags as string[] | undefined,
           limit: args.limit || 10
-        });
+        };
+        
+        const searchResults = await searchManager.search(searchFilter);
         return { content: [{ type: "text", text: JSON.stringify(searchResults, null, 2) }] };
 
       case "open_nodes":
@@ -396,7 +398,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_recent_entities":
         // First get all entity names, then retrieve their details
         const summaryGraph = await knowledgeGraphManager.readGraph();
-        const entityNames = summaryGraph.entities.map((e: any) => e.name);
+        const entityNames = summaryGraph.entities.map((e) => e.name);
         
         // Get full entity details
         const fullEntities: Entity[] = [];
@@ -420,10 +422,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_relevant_entities":
         const topic = knowledgeGraphManager.getWorkingMemory().currentTopic || "";
-        return { content: [{ type: "text", text: JSON.stringify(await searchManager.search({
+        const relevantFilter: SearchFilter = {
           query: topic,
           limit: args && args.limit ? args.limit : 5
-        }), null, 2) }] };
+        };
+        return { content: [{ type: "text", text: JSON.stringify(await searchManager.search(relevantFilter), null, 2) }] };
 
       case "get_function_guidelines":
         // This functionality isn't directly implemented in our modular version,
@@ -485,7 +488,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!args || !args.message) return { content: [{ type: "text", text: "No message provided" }] };
         
         const message = args.message.toString().toLowerCase();
-        const triggers = [];
+        const triggers: string[] = [];
         
         if (/remember|told you|mentioned|said|earlier|previously|last time/i.test(message)) {
           triggers.push('retrieve');
