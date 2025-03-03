@@ -1,6 +1,6 @@
-import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager';
-import { Entity, MemoryHealthMetrics } from '../types/interfaces';
-import { calculateStringDistance, getDateDaysAgo } from '../core/utils';
+import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager.js';
+import { Entity, MemoryHealthMetrics } from '../types/interfaces.js';
+import { calculateStringDistance, getDateDaysAgo } from '../core/utils.js';
 
 /**
  * Manages health and maintenance operations for the knowledge graph
