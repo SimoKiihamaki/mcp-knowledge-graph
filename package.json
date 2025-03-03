@@ -1,10 +1,18 @@
 {
   "name": "mcp-knowledge-graph",
-  "version": "1.0.0",
-  "description": "Memory and Cognition Platform Knowledge Graph for AI systems",
+  "version": "1.0.1",
+  "description": "Enhanced Knowledge Graph Memory Server for Claude",
   "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "mcp-knowledge-graph": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && shx chmod +x dist/*.js",
+    "prepare": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsc -w & nodemon dist/index.js",
     "test": "jest"
@@ -18,18 +26,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "minimist": "^1.2.8",
-    "node-fetch": "^2.7.0"
+    "@modelcontextprotocol/sdk": "1.0.1",
+    "minimist": "^1.2.8"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
     "@types/minimist": "^1.2.5",
     "@types/node": "^20.11.24",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
+    "shx": "^0.3.4",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
   }
