@@ -3,13 +3,13 @@ import { parseArgs } from 'node:util';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { KnowledgeGraphManager } from './src/core/KnowledgeGraphManager.js';
-import { ProjectManager } from './src/managers/ProjectManager.js';
-import { TagManager } from './src/managers/TagManager.js';
-import { SearchManager } from './src/managers/SearchManager.js';
-import { MemoryHealthManager } from './src/managers/MemoryHealthManager.js';
-import { Entity, Relation } from './src/types/interfaces.js';
-import { startHttpServer } from './src/server/httpServer.js';
+import { KnowledgeGraphManager } from './src/core/KnowledgeGraphManager';
+import { ProjectManager } from './src/managers/ProjectManager';
+import { TagManager } from './src/managers/TagManager';
+import { SearchManager } from './src/managers/SearchManager';
+import { MemoryHealthManager } from './src/managers/MemoryHealthManager';
+import { Entity, Relation } from './src/types/interfaces';
+import { startHttpServer } from './src/server/httpServer';
 
 // Parse command line arguments
 const { values } = parseArgs({
@@ -328,4 +328,4 @@ knowledgeGraphManager.readGraph(false)
   .catch((error: any) => {
     console.error('Failed to initialize knowledge graph:', error);
     process.exit(1);
-  }); 
+  });
