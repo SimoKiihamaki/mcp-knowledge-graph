@@ -296,6 +296,89 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["message"],
         },
       },
+      {
+        name: "get_recent_entities",
+        description: "Get the most recently accessed entities from the knowledge graph",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: { 
+              type: "number", 
+              description: "Maximum number of entities to return (default: 5)" 
+            },
+          },
+        },
+      },
+      {
+        name: "get_relevant_entities",
+        description: "Get the most relevant entities based on the current conversation context",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: { 
+              type: "number", 
+              description: "Maximum number of entities to return (default: 5)" 
+            },
+          },
+        },
+      },
+      {
+        name: "get_function_guidelines",
+        description: "Get usage guidelines for knowledge graph functions to understand when and how to use them",
+        inputSchema: {
+          type: "object",
+          properties: {
+            functionName: { 
+              type: "string", 
+              description: "Specific function to get guidelines for (optional, returns all if not specified)" 
+            },
+          },
+        },
+      },
+      {
+        name: "get_documentation_standards",
+        description: "Get standards for documenting information in the knowledge graph",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "get_working_memory",
+        description: "Get the current working memory context with recently accessed entities",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "set_current_topic",
+        description: "Set the current conversation topic in working memory",
+        inputSchema: {
+          type: "object",
+          properties: {
+            topic: { 
+              type: "string", 
+              description: "The current topic of conversation" 
+            },
+          },
+          required: ["topic"],
+        },
+      },
+      {
+        name: "process_user_message",
+        description: "Process a user message to detect when memory functions should be used",
+        inputSchema: {
+          type: "object",
+          properties: {
+            message: { 
+              type: "string", 
+              description: "The user's message to analyze" 
+            },
+          },
+          required: ["message"],
+        },
+      },
     ],
   };
 });
@@ -304,6 +387,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  if (!args && name !== "get_documentation_standards" && name !== "get_working_memory") {
   if (!args && name !== "get_documentation_standards" && name !== "get_working_memory") {
     throw new Error(`No arguments provided for tool: ${name}`);
   }

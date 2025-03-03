@@ -1,5 +1,11 @@
 # Enhanced Knowledge Graph Memory Server
+# Enhanced Knowledge Graph Memory Server
 
+An optimized implementation of persistent memory for Claude using a knowledge graph with context window management.
+
+## Critical Configuration Note
+
+In Claude Desktop, this server **MUST** be registered as `memory` (not "knowledge-graph" or "mcp-knowledge-graph"):
 An optimized implementation of persistent memory for Claude using a knowledge graph with context window management.
 
 ## Critical Configuration Note
@@ -60,6 +66,12 @@ The function always returns this lightweight format to preserve context window s
 
 ```json
 {
+  "entities": [
+    { "name": "person_JohnDoe", "entityType": "Person" },
+    { "name": "project_Dashboard", "entityType": "Project" }
+  ],
+  "relations": [
+    { "from": "person_JohnDoe", "to": "project_Dashboard", "relationType": "manages" }
   "entities": [
     { "name": "person_JohnDoe", "entityType": "Person" },
     { "name": "project_Dashboard", "entityType": "Project" }
