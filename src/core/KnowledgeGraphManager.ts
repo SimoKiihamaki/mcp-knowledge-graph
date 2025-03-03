@@ -6,8 +6,8 @@ import {
   SummaryKnowledgeGraph,
   EntitySummary,
   Relation
-} from '../types/interfaces.js';
-import { getCurrentTimestamp } from './utils.js';
+} from '../types/interfaces';
+import { getCurrentTimestamp } from './utils';
 
 /**
  * Core manager for knowledge graph operations
@@ -577,4 +577,4 @@ export class KnowledgeGraphManager {
     
     return relation;
   }
-} 
+}
