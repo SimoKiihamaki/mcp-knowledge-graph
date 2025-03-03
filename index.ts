@@ -12,12 +12,12 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import minimist from 'minimist';
 import { isAbsolute } from 'path';
-import { KnowledgeGraphManager } from './src/core/KnowledgeGraphManager';
-import { ProjectManager } from './src/managers/ProjectManager';
-import { TagManager } from './src/managers/TagManager';
-import { SearchManager } from './src/managers/SearchManager';
-import { MemoryHealthManager } from './src/managers/MemoryHealthManager';
-import { Entity, Relation, SearchFilter } from './src/types/interfaces';
+import { KnowledgeGraphManager } from './src/core/KnowledgeGraphManager.js';
+import { ProjectManager } from './src/managers/ProjectManager.js';
+import { TagManager } from './src/managers/TagManager.js';
+import { SearchManager } from './src/managers/SearchManager.js';
+import { MemoryHealthManager } from './src/managers/MemoryHealthManager.js';
+import { Entity, Relation, SearchFilter } from './src/types/interfaces.js';
 
 // Parse args and handle paths safely
 const argv = minimist(process.argv.slice(2));
