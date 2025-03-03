@@ -558,7 +558,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const project = await projectManager.createProject(
           args.name,
-          args.description
+          typeof args.description === 'string' ? args.description : undefined
         );
         return { content: [{ type: "text", text: JSON.stringify(project, null, 2) }] };
         
