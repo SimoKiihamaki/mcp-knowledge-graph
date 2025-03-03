@@ -1,10 +1,126 @@
-# Enhanced Knowledge Graph Memory Server
+# MCP Knowledge Graph
 
-An optimized implementation of persistent memory for Claude using a knowledge graph with context window management.
+A modular Memory and Cognition Platform Knowledge Graph system for AI applications, providing persistent memory, hierarchical organization, and advanced search capabilities.
 
-## Critical Configuration Note
+## Features
 
-In Claude Desktop, this server **MUST** be registered as `memory` (not "knowledge-graph" or "mcp-knowledge-graph"):
+- **Entity Management**: Create, read, update, and delete entities with observations
+- **Relation Management**: Define relationships between entities
+- **Project Management**: Organize entities into projects
+- **Tag System**: Flexible categorization with tags
+- **Hierarchical Memory**: Support for parent-child relationships
+- **Advanced Search**: Search by name, type, tags, and hierarchical relationships
+- **Memory Health**: Tools for monitoring and maintaining memory health
+
+## Installation
+
+```bash
+git clone https://github.com/your-username/mcp-knowledge-graph.git
+cd mcp-knowledge-graph
+npm install
+npm run build
+```
+
+## Usage
+
+Start the server:
+
+```bash
+npm start
+```
+
+The server runs on port 3000 by default. You can customize the port by setting the `PORT` environment variable.
+
+## API Endpoints
+
+### Entity Management
+
+- `POST /entities`: Create a new entity
+- `GET /entities/:name`: Retrieve an entity
+- `PUT /entities/:name`: Update an entity
+- `DELETE /entities/:name`: Delete an entity
+
+### Relation Management
+
+- `POST /relations`: Create a relation between entities
+- `GET /relations`: Retrieve relations for an entity
+- `DELETE /relations`: Delete a relation
+
+### Project Management
+
+- `POST /projects`: Create a new project
+- `GET /projects`: List all projects
+- `GET /projects/:projectId`: Retrieve a project
+- `PUT /projects/:projectId`: Update a project
+- `DELETE /projects/:projectId`: Delete a project
+- `GET /projects/:projectId/entities`: Retrieve entities for a project
+- `POST /set-current-project`: Set the current active project
+- `GET /current-project`: Get the current active project
+- `GET /recent-projects`: Get recently accessed projects
+
+### Tag Management
+
+- `POST /entities/:name/tags`: Add tags to an entity
+- `DELETE /entities/:name/tags`: Remove tags from an entity
+- `GET /tags`: Get all tags
+- `GET /tags/:tag/entities`: Get entities with a specific tag
+- `GET /tags/:tag/related`: Get related tags
+
+### Search
+
+- `POST /search`: Search with filters
+- `POST /advanced-search`: Advanced search with multiple criteria
+- `GET /search/name/:name`: Search entities by name
+- `GET /search/type/:type`: Search entities by type
+- `GET /search/hierarchical/:rootEntity`: Hierarchical search
+- `GET /search/relation/:relationType`: Search by relation type
+
+### Memory Health
+
+- `GET /memory-health`: Get memory health metrics
+- `GET /memory-health/duplicates`: Find possible duplicate entities
+- `GET /memory-health/stale`: Find stale entities
+- `GET /memory-health/orphaned`: Find orphaned entities
+- `POST /deprecate-entity/:name`: Deprecate an entity
+
+## Project Structure
+
+```
+src/
+  ├── core/
+  │   ├── KnowledgeGraphManager.ts   # Core functionality
+  │   └── utils.ts                   # Utility functions
+  ├── types/
+  │   └── interfaces.ts              # TypeScript interfaces
+  ├── managers/
+  │   ├── ProjectManager.ts          # Project management
+  │   ├── TagManager.ts              # Tag management
+  │   ├── SearchManager.ts           # Search functionality
+  │   └── MemoryHealthManager.ts     # Memory health
+  ├── server/
+  │   └── server.ts                  # Express server
+  └── index.ts                       # Entry point
+```
+
+## Configuration
+
+The server can be configured with the following environment variables:
+
+- `PORT`: The port to run the server on (default: 3000)
+- `MEMORY_FILE`: Path to the memory file (default: './memory.jsonl')
+- `WORKING_MEMORY_FILE`: Path to the working memory file (default: './working_memory.json')
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Model Context Protocol Integration
+
+This server uses the Model Context Protocol (MCP) to integrate with Claude Desktop. Instead of running as a traditional HTTP server, it communicates via stdin/stdout using JSON-RPC formatted messages.
+
+### Registering with Claude Desktop
+
+To register this server with Claude Desktop, add the following configuration to your Claude Desktop settings:
 
 ```json
 "memory": {
@@ -17,143 +133,20 @@ In Claude Desktop, this server **MUST** be registered as `memory` (not "knowledg
 }
 ```
 
-## Quick Installation
+**Important**: The server MUST be registered as `memory` (not "knowledge-graph" or "mcp-knowledge-graph") for Claude Desktop to recognize it correctly.
 
-```bash
-git clone https://github.com/SimoKiihamaki/mcp-knowledge-graph.git
-cd mcp-knowledge-graph
-git checkout enhance-memory-management
-npm install
-npm run build
-```
+### Available MCP Functions
 
-## What's Different in This Version?
+The server exposes the following MCP functions:
 
-This enhanced fork addresses critical limitations in the original memory server:
-
-1. **Context Window Protection**: The original server always returned complete entity data with all observations, rapidly filling Claude's context window. Our version always returns only names and types, with no option to get full details via `read_graph`.
-
-2. **Function Documentation**: Original server provided no guidance on when to use memory functions. We've added built-in guidelines accessible via `get_function_guidelines`.
-
-3. **Smart Memory Management**: Original had no tools to retrieve entities based on relevance. We've added functions to get recently accessed and contextually relevant entities.
-
-4. **Working Memory**: Original provided no session tracking. We've added a working memory context system that maintains information about the current conversation.
-
-5. **Temporal Awareness**: Original had no concept of when entities were created or accessed. We track creation/access timestamps and access frequency.
-
-## The read_graph Function Explained
-
-The `read_graph` function is the most important memory tool, and works differently in our implementation:
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `fullDetails` | boolean | `false` | This parameter is kept for compatibility but is ignored. The function always returns only entity names and types. |
-
-### Return Values
-
-The function always returns this lightweight format to preserve context window space:
-
-```json
-{
-  "entities": [
-    { "name": "person_JohnDoe", "entityType": "Person" },
-    { "name": "project_Dashboard", "entityType": "Project" }
-  ],
-  "relations": [
-    { "from": "person_JohnDoe", "to": "project_Dashboard", "relationType": "manages" }
-  ]
-}
-```
-
-### How To Use read_graph Effectively
-
-```javascript
-// Get the lightweight overview of all entities
-const graph = await knowledgeGraphManager.readGraph();
-// Only contains entity names and types, never the full observations
-```
-
-### Accessing Full Entity Details
-
-Since `read_graph` never returns full details, you must use these functions to access complete entity information:
-
-```javascript
-// To get specific entity details, use open_nodes:
-const personDetails = await knowledgeGraphManager.openNodes(["person_JohnDoe"]);
-// This returns full entity data including all observations
-
-// Or search for relevant entities:
-const projectData = await knowledgeGraphManager.searchNodes("dashboard");
-// This also returns full entity data for matches
-```
-
-### Usage Example with Claude
-
-```
-Human: What do you know about me?
-
-Claude: Let me check my memory.
-
-<function_call>
-read_graph()
-</function_call>
-
-I can see I have information about you stored in my memory. Would you like me to get more details about person_JohnDoe?
-```
-
-## All Available Memory Functions
-
-| Function | Purpose | Key Parameters |
-|----------|---------|----------------|
-| `read_graph` | Get overview of all entities | Parameters ignored, always returns names & types |
-| `open_nodes` | Get specific entities by name | `names`: string[] |
-| `search_nodes` | Find entities by keyword | `query`: string |
-| `create_entities` | Create new entities | `entities`: Entity[] |
-| `create_relations` | Create connections | `relations`: Relation[] |
-| `add_observations` | Add info to entities | `observations`: {entityName, contents}[] |
-| `get_recent_entities` | Get recently accessed | `limit`: number (default: 5) |
-| `get_relevant_entities` | Get contextually relevant | `limit`: number (default: 5) |
-| `get_function_guidelines` | Get usage guidance | `functionName`: string (optional) |
-| `get_documentation_standards` | Get doc standards | none |
-| `get_working_memory` | Get session context | none |
-| `set_current_topic` | Set conversation topic | `topic`: string |
-| `process_user_message` | Detect memory triggers | `message`: string |
-
-## Recommended Claude System Prompt
-
-Use this system prompt to take full advantage of the enhanced memory features:
-
-```
-When using memory, follow these best practices:
-
-1. Start conversations by checking context:
-   - First use get_working_memory and get_relevant_entities(5)
-   - Use read_graph() to get an overview of all entities
-   - For specific entity details, use open_nodes(["entity_name"])
-
-2. For memory retrieval:
-   - Process user messages with process_user_message to detect retrieval needs
-   - Use search_nodes for keyword searches
-   - Use get_recent_entities when recency matters
-
-3. When storing information:
-   - Follow documentation standards from get_documentation_standards()
-   - Use entity prefixes (person_, project_, etc.)
-   - Include full context in observations
-   - Track the current topic with set_current_topic
-
-4. Always check function guidelines if unsure:
-   - Use get_function_guidelines("function_name") for specific guidance
-```
-
-## Detailed Setup Instructions
-
-For complete installation and configuration details, see [SETUP.md](SETUP.md).
-
-For guidance on effective memory usage patterns, see [AI_MEMORY_GUIDE.md](AI_MEMORY_GUIDE.md).
-
-## License
-
-MIT License - See [LICENSE](LICENSE) file for details.
+| Function | Description |
+|----------|-------------|
+| `read_graph` | Get a lightweight overview of all entities and relations in the graph |
+| `create_entities` | Create new entities |
+| `create_relations` | Create new relations between entities |
+| `add_observations` | Add observations to existing entities |
+| `search_nodes` | Search for entities by keyword |
+| `open_nodes` | Get full details of specific entities by name |
+| `get_recent_entities` | Get recently accessed entities |
+| `get_working_memory` | Get the current working memory context |
+| `set_current_topic` | Set the current conversation topic |
