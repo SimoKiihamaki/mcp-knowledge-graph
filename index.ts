@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+// Use require format to avoid ES module issues
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {

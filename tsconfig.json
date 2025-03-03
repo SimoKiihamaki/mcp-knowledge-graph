@@ -3,16 +3,24 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
+<<<<<<< HEAD
     "module": "ESNext",
+=======
+    "module": "CommonJS",
+>>>>>>> 68154b2eb7651ea2c7e2117eaba21fe06cadde28
     "moduleResolution": "Node",
     "target": "ES2020",
-    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
+<<<<<<< HEAD
     "noImplicitAny": false
+=======
+    "noImplicitAny": false,
+    "strict": false
+>>>>>>> 68154b2eb7651ea2c7e2117eaba21fe06cadde28
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist"]
