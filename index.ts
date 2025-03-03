@@ -322,7 +322,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               entity.parentEntity,
               entity.tags
             );
-            entities.push(result);
+            if (result) {
+              entities.push(result);
+            }
           }
         }
         return { content: [{ type: "text", text: JSON.stringify(entities, null, 2) }] };
@@ -337,13 +339,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               relation.relationType,
               relation.metadata
             );
-            relations.push(result);
+            if (result) {
+              relations.push(result);
+            }
           }
         }
         return { content: [{ type: "text", text: JSON.stringify(relations, null, 2) }] };
 
       case "add_observations":
-        const results: { entityName: string; addedObservations: string[] }[] = [];
+        const results: { entityName: any; addedObservations: any }[] = [];
         if (args && Array.isArray(args.observations)) {
           for (const observation of args.observations) {
             const entity = await knowledgeGraphManager.getEntity(observation.entityName);
@@ -352,10 +356,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 observation.entityName,
                 { observations: [...entity.observations, ...observation.contents] }
               );
-              results.push({
-                entityName: observation.entityName,
-                addedObservations: observation.contents
-              });
+              if (updatedEntity) {
+                results.push({
+                  entityName: observation.entityName,
+                  addedObservations: observation.contents
+                });
+              }
             }
           }
         }
@@ -388,7 +394,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(searchResults, null, 2) }] };
 
       case "open_nodes":
-        if (!args || !args.names) return { content: [{ type: "text", text: "No node names provided" }] };
+        if (!args || !Array.isArray(args.names)) return { content: [{ type: "text", text: "No node names provided" }] };
         
         const nodes = await Promise.all(
           args.names.map((name: string) => knowledgeGraphManager.getEntity(name))
@@ -398,7 +404,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_recent_entities":
         // First get all entity names, then retrieve their details
         const summaryGraph = await knowledgeGraphManager.readGraph();
-        const entityNames = summaryGraph.entities.map((e) => e.name);
+        const entityNames = summaryGraph.entities.map((e: any) => e.name);
         
         // Get full entity details
         const fullEntities: Entity[] = [];
@@ -416,7 +422,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             const bDate = b.lastAccessed ? new Date(b.lastAccessed).getTime() : 0;
             return bDate - aDate;
           })
-          .slice(0, args && args.limit ? args.limit : 5);
+          .slice(0, args && typeof args.limit === 'number' ? args.limit : 5);
         
         return { content: [{ type: "text", text: JSON.stringify({ entities: recentEntities }, null, 2) }] };
 
@@ -424,7 +430,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const topic = knowledgeGraphManager.getWorkingMemory().currentTopic || "";
         const relevantFilter: SearchFilter = {
           query: topic,
-          limit: args && args.limit ? args.limit : 5
+          limit: args && typeof args.limit === 'number' ? args.limit : 5
         };
         return { content: [{ type: "text", text: JSON.stringify(await searchManager.search(relevantFilter), null, 2) }] };
 
@@ -447,7 +453,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           // Add other function guidelines as needed
         };
         
-        if (args && args.functionName && guidelines[args.functionName]) {
+        if (args && typeof args.functionName === 'string' && guidelines[args.functionName]) {
           return { content: [{ type: "text", text: JSON.stringify(guidelines[args.functionName], null, 2) }] };
         }
         return { content: [{ type: "text", text: JSON.stringify(guidelines, null, 2) }] };
@@ -477,7 +483,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(knowledgeGraphManager.getWorkingMemory(), null, 2) }] };
 
       case "set_current_topic":
-        if (args && args.topic) {
+        if (args && typeof args.topic === 'string') {
           knowledgeGraphManager.setCurrentTopic(args.topic);
           return { content: [{ type: "text", text: `Current topic set to: ${args.topic}` }] };
         }
@@ -485,21 +491,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "process_user_message":
         // Simplified implementation
-        if (!args || !args.message) return { content: [{ type: "text", text: "No message provided" }] };
+        if (!args || typeof args.message !== 'string') return { content: [{ type: "text", text: "No message provided" }] };
         
         const message = args.message.toString().toLowerCase();
         const triggers: string[] = [];
         
         if (/remember|told you|mentioned|said|earlier|previously|last time/i.test(message)) {
-          triggers.push('retrieve');
+          triggers.push("retrieve");
         }
         
         if (/remember this|note this|keep track|don't forget|save this/i.test(message)) {
-          triggers.push('store');
+          triggers.push("store");
         }
         
         if (/not correct|wrong|actually|instead|rather|update/i.test(message)) {
-          triggers.push('update');
+          triggers.push("update");
         }
         
         return { content: [{ type: "text", text: JSON.stringify(triggers, null, 2) }] };
