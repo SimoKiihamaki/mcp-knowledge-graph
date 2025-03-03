@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager.js';
-import { SearchManager } from '../managers/SearchManager.js';
+import { KnowledgeGraphManager } from '../core/KnowledgeGraphManager';
+import { SearchManager } from '../managers/SearchManager';
 
 // Define tools for MCP compliance
 const mcpTools = [
@@ -254,4 +254,4 @@ export function startHttpServer(
   });
   
   return server;
-} 
+}
