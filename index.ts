@@ -383,11 +383,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!args) return { content: [{ type: "text", text: "No search parameters provided" }] };
         
         const searchFilter: SearchFilter = {
-          query: args.query || "",
+          query: typeof args.query === 'string' ? args.query : "",
           entityTypes: args.entityTypes as string[] | undefined,
           projectId: args.projectId as string | undefined,
           tags: args.tags as string[] | undefined,
-          limit: args.limit || 10
+          limit: typeof args.limit === 'number' ? args.limit : 10
         };
         
         const searchResults = await searchManager.search(searchFilter);
@@ -430,7 +430,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const topic = knowledgeGraphManager.getWorkingMemory().currentTopic || "";
         const relevantFilter: SearchFilter = {
           query: topic,
-          limit: args && typeof args.limit === 'number' ? args.limit : 5
+          limit: typeof args?.limit === 'number' ? args.limit : 5
         };
         return { content: [{ type: "text", text: JSON.stringify(await searchManager.search(relevantFilter), null, 2) }] };
 
